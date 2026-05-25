@@ -1,0 +1,30 @@
+# Terraform files
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform/
+.terraform.lock.hcl
+tfplan
+
+# Environment files
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# SSH keys
+.ssh/id_rsa
+.ssh/id_rsa.pub
+
+# Artifacts
+terraform/outputs.json
+*.sarif
+
+# OS
+.DS_Store
+Thumbs.db
