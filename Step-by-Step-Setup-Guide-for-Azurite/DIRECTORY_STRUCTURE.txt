@@ -1,0 +1,121 @@
+terraform-vm-testing/
+│
+├── .github/
+│   └── workflows/
+│       └── vm-provision-workflow.yml        # GitHub Actions workflow
+│
+├── .ssh/
+│   ├── id_rsa                               # Private SSH key (KEEP SECRET - in .gitignore)
+│   └── id_rsa.pub                           # Public SSH key
+│
+├── terraform/
+│   ├── main.tf                              # Backend + Provider configuration
+│   ├── variables.tf                         # Input variables
+│   ├── resources.tf                         # VM + Infrastructure resources
+│   ├── outputs.tf                           # Output values
+│   ├── .terraform/                          # Terraform cache (auto-created, in .gitignore)
+│   ├── .terraform.lock.hcl                  # Terraform lock file (auto-created)
+│   ├── terraform.tfstate                    # State file (in .gitignore)
+│   └── tfplan                               # Terraform plan artifact (in .gitignore)
+│
+├── .docs/
+│   ├── SETUP_GUIDE.md                       # This guide
+│   ├── ARCHITECTURE.md                      # Architecture diagram
+│   └── TROUBLESHOOTING.md                   # Common issues
+│
+├── .gitignore                               # Git ignore patterns
+├── README.md                                # Repository overview
+├── LICENSE                                  # License (optional)
+└── terraform.tfvars.example                 # Example variables (optional)
+
+
+FILES TO COMMIT TO GIT:
+═══════════════════════════════════════════════════════════════
+
+├── .github/workflows/vm-provision-workflow.yml  ✅ COMMIT
+├── terraform/main.tf                            ✅ COMMIT
+├── terraform/variables.tf                       ✅ COMMIT
+├── terraform/resources.tf                       ✅ COMMIT
+├── terraform/outputs.tf                         ✅ COMMIT
+├── .ssh/id_rsa.pub                              ✅ COMMIT (public key is safe)
+├── .gitignore                                   ✅ COMMIT
+├── README.md                                    ✅ COMMIT
+└── LICENSE                                      ✅ COMMIT
+
+FILES TO EXCLUDE FROM GIT:
+═══════════════════════════════════════════════════════════════
+
+├── .ssh/id_rsa                  ❌ DO NOT COMMIT (private key)
+├── terraform/.terraform/        ❌ DO NOT COMMIT (auto-generated)
+├── terraform/.terraform.lock.hcl ❌ DO NOT COMMIT
+├── terraform/terraform.tfstate  ❌ DO NOT COMMIT (state file)
+├── terraform/tfplan             ❌ DO NOT COMMIT
+├── .env*                        ❌ DO NOT COMMIT (secrets)
+└── **/*.swp, **/*.swo           ❌ DO NOT COMMIT (editor files)
+
+
+SETUP FLOW:
+═══════════════════════════════════════════════════════════════
+
+1. Create directory structure:
+   mkdir -p terraform-vm-testing/{terraform,.github/workflows,.ssh,.docs}
+
+2. Place Terraform files in terraform/:
+   - main.tf
+   - variables.tf
+   - resources.tf
+   - outputs.tf
+
+3. Place workflow in .github/workflows/:
+   - vm-provision-workflow.yml
+
+4. Generate SSH key in .ssh/:
+   ssh-keygen -t rsa -b 4096 -f .ssh/id_rsa -N ""
+
+5. Create .gitignore and README.md in root
+
+6. Initialize git and commit:
+   cd terraform-vm-testing
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git remote add origin <your-github-repo>
+   git push -u origin main
+
+
+LOCAL TESTING DIRECTORY:
+═══════════════════════════════════════════════════════════════
+
+~/azurite-data/
+├── devstoreaccount1/
+│   ├── tfstate/
+│   │   └── vm.tfstate              # Your Terraform state (created during init)
+│   ├── __blobstorage__/
+│   ├── __queuestorage__/
+│   └── __tablestorage__/
+└── AccessLog.log
+
+This is where Azurite stores emulated storage data locally.
+Generated when you run: azurite --silent --location ~/azurite-data
+
+
+SIZE REFERENCE:
+═══════════════════════════════════════════════════════════════
+
+Project repository:  ~50 KB  (without .terraform directory)
+Azurite data dir:    ~100-200 KB (after first terraform init)
+Terraform cache:     ~20-30 MB (in .terraform directory)
+
+Total disk needed:   <100 MB
+
+
+IMPORTANT FILE SIZES:
+═══════════════════════════════════════════════════════════════
+
+.ssh/id_rsa                      ~1.7 KB  (private key)
+.ssh/id_rsa.pub                  ~400 B   (public key)
+terraform/main.tf                ~600 B
+terraform/variables.tf           ~1.5 KB
+terraform/resources.tf           ~3.5 KB
+terraform/outputs.tf             ~700 B
+.github/workflows/*.yml          ~5-8 KB

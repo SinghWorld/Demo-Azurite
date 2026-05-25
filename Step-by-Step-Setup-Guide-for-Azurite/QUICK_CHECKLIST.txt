@@ -1,0 +1,169 @@
+# Quick Reference Checklist
+
+## Phase 1: Local Setup (Your Ubuntu 22.04)
+
+- [ ] Install Azurite: `npm install -g azurite`
+- [ ] Generate SSH key: `ssh-keygen -t rsa -b 4096 -f .ssh/id_rsa -N ""`
+- [ ] Start Azurite: `azurite --silent --location ~/azurite-data`
+- [ ] Verify running: `curl http://127.0.0.1:10000/devstoreaccount1`
+- [ ] Test Terraform init with Azurite backend
+- [ ] Run `terraform plan` (should show 8 resources to add)
+
+## Phase 2: GitHub Repository Setup
+
+- [ ] Create GitHub repo: `terraform-vm-testing`
+- [ ] Clone locally
+- [ ] Create directory structure:
+  - `.github/workflows/`
+  - `terraform/`
+  - `.ssh/`
+  - `.docs/`
+- [ ] Copy 5 Terraform files to `terraform/`:
+  - `main.tf`
+  - `variables.tf`
+  - `resources.tf`
+  - `outputs.tf`
+- [ ] Copy workflow file: `.github/workflows/vm-provision-workflow.yml`
+- [ ] Create `.gitignore` (exclude `.ssh/id_rsa`, `*.tfstate`, etc.)
+- [ ] Create `README.md`
+
+## Phase 3: GitHub Actions Testing
+
+- [ ] Push to GitHub: `git push -u origin main`
+- [ ] Watch workflow in Actions tab
+- [ ] Verify jobs:
+  - ✅ `azurite-start` - PASS
+  - ✅ `terraform-validate` - PASS
+  - ✅ `security-scan` - PASS
+  - ⚠️ `terraform-apply` - Expect FAIL (no Azure subscription)
+  - ⏭️ `test-vm` - SKIP
+  - ✅ `cleanup` - PASS
+- [ ] Review logs and artifacts
+
+## Phase 4: Understanding State Management
+
+- [ ] Inspect Terraform state in Azurite:
+  ```
+  ~/azurite-data/devstoreaccount1/tfstate/vm.tfstate
+  ```
+- [ ] Verify state was created: `ls -la ~/azurite-data/devstoreaccount1/tfstate/`
+- [ ] Query state via Azure CLI:
+  ```bash
+  az storage blob list --container-name tfstate \
+    --connection-string "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXeOFYAixTcSxaU=;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;"
+  ```
+
+## Phase 5: Troubleshooting
+
+- [ ] If Azurite fails, check port 10000 is free: `lsof -i :10000`
+- [ ] If Terraform init fails, verify: `echo $ARM_ENDPOINT`
+- [ ] If SSH key missing, regenerate: `ssh-keygen -t rsa -b 4096 -f .ssh/id_rsa -N ""`
+- [ ] If state not persisting, check permissions: `chmod -R 755 ~/azurite-data/`
+
+## Phase 6: Transition to Real Azure (Future)
+
+- [ ] Create Azure Storage Account for state
+- [ ] Update `terraform/main.tf` - switch backend to real Azure
+- [ ] Setup Azure OIDC in GitHub
+- [ ] Update workflow to use Azure OIDC
+- [ ] Test with real Azure subscription
+- [ ] Integrate with drift detection workflow
+
+## Environment Variables (for local testing)
+
+```bash
+export ARM_USE_AZUREAD=false
+export ARM_ENDPOINT=http://127.0.0.1:10000
+export AZURE_STORAGE_ACCOUNT=devstoreaccount1
+export AZURE_STORAGE_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXeOFYAixTcSxaU=
+export AZURE_STORAGE_USE_HTTPS=false
+```
+
+## File Reference
+
+| File | Purpose | Location |
+|------|---------|----------|
+| `vm-provision-workflow.yml` | GitHub Actions workflow | `.github/workflows/` |
+| `main.tf` | Backend + Provider config | `terraform/` |
+| `variables.tf` | Input variables | `terraform/` |
+| `resources.tf` | VM + infra resources | `terraform/` |
+| `outputs.tf` | Output values | `terraform/` |
+| `README.md` | Setup documentation | root |
+| `LOCAL_TESTING_GUIDE.md` | Detailed guide | `.docs/` or root |
+
+## Common Commands (Quick Copy-Paste)
+
+### Start Azurite
+```bash
+mkdir -p ~/azurite-data
+azurite --silent --location ~/azurite-data
+```
+
+### Initialize Terraform
+```bash
+cd terraform/
+export ARM_USE_AZUREAD=false
+export ARM_ENDPOINT=http://127.0.0.1:10000
+
+terraform init \
+  -backend-config="storage_account_name=devstoreaccount1" \
+  -backend-config="container_name=tfstate" \
+  -backend-config="key=vm.tfstate" \
+  -backend-config="resource_group_name=local-dev" \
+  -backend-config="use_azuread_auth=false"
+```
+
+### Plan Terraform
+```bash
+terraform plan \
+  -var="vm_name=test-vm-local" \
+  -var="resource_group_name=local-rg" \
+  -var="location=eastus" \
+  -out=tfplan
+```
+
+### Verify Azurite State
+```bash
+curl http://127.0.0.1:10000/devstoreaccount1/tfstate/vm.tfstate | jq .
+```
+
+### Push to GitHub
+```bash
+git add .
+git commit -m "Add VM provisioning workflow"
+git push -u origin main
+```
+
+## Success Indicators
+
+✅ Azurite starts without errors
+✅ Terraform init completes successfully
+✅ Terraform plan shows 8 resources
+✅ GitHub Actions workflow appears in repo
+✅ Workflow jobs run (some expected to fail)
+✅ State file created in Azurite storage
+✅ Checkov security scan completes
+✅ Cleanup job removes resources
+
+## Next Steps After Success
+
+1. **Test locally:** Repeat Phase 1 commands multiple times
+2. **Understand state:** Inspect what's in `~/azurite-data/`
+3. **Integrate with existing work:** Combine with your drift detection pipeline
+4. **Add drift detection:** Use this as base for your Terraform-Drift-Detection repo
+5. **Transition to Azure:** When ready, follow Phase 6
+
+## Estimated Timeline
+
+| Phase | Time | Notes |
+|-------|------|-------|
+| Local Setup | 15 min | Azurite + Terraform init |
+| GitHub Setup | 10 min | Repo + files + push |
+| First Run | 5 min | Watch workflow in Actions |
+| Troubleshooting | 10-20 min | If needed |
+| Understanding | 20 min | Inspect state, logs |
+| **Total** | **~1 hour** | End-to-end testing |
+
+---
+
+**Status:** Ready to start? Run the commands in Phase 1 first!
